@@ -1,27 +1,69 @@
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { DashboardContext } from './Components/context';
-import Dashboard from './Components/Dashboard';
+const BASE_URL = 'https://jsonplaceholder.typicode.com';
 
-export interface User {
-  isSubscribed: boolean;
-  name: string;
+interface Post {
+  id:number;
+  title:string
 }
 
-interface DemoProps {}
+export default function App() {
+ const [error, setError] = useState();
+ const [isLoading, setLoading] = useState(false);
+ const [posts, setPost]= useState<Post[]>([]);
+ const [page, setPage] = useState(1)
 
-export default function Demo({}: DemoProps) {
-  const [user] = useState<User>({
-    isSubscribed: true,
-    name: 'You',
-  });
+ const abortControllerRef = useRef(null)
+
+ useEffect(()=>{
+
+  const fetchPosts = async ()=>{
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController ();
+
+    setLoading(true);
+    console.log(page)
+    try {
+      const response = await fetch(`${BASE_URL}/posts`, {
+        signal: abortControllerRef.current.signal
+      });
+      const postsData = (await response.json() as Post);
+      setPost(postsData);
+    }catch(error:any){
+      setError(error)
+    }
+
+    setLoading(false);
+  }
+
+    fetchPosts();
+
+ }, [page])
+
+ if(isLoading){
+  return <div> Loading </div>
+ }
+
+ if(error){
+      return <div> Something went wrong!</div>
+ }
 
   return (
     <div>
-      <DashboardContext.Provider value={user}>
-        <Dashboard />
-      </DashboardContext.Provider>
+        <h1> Data fetching in React</h1>
+        <button onClick={()=>setPage(page + 1)}>Increase page</button>
+        <ul>
+          {posts.map((post)=>  {
+                  return <li key={post.id}> {post.title} </li>
+
+          })
+
+          }
+        </ul>
+
+ 
+    
     </div>
   );
 }
